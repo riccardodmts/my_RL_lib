@@ -19,7 +19,7 @@ class TorchModel(nn.Module):
         :param obs: observation of the agent. tensor [B x ...] or [B x T x ...]
         :param state: state in case critic is used. Otherwise, not used. same as obs, tensor
         :param hidden: eventually for Recurrent RL algorithm.
-        :return: tensor [B x action_space] or [B x T x action_space]
+        :return: tensor [B x ...] or [B x T ...]
         """
 
         pass
