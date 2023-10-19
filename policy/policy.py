@@ -90,12 +90,12 @@ class Policy:
         else:
             raise Exception("Not implemented!")
 
-        sample_dict = {"action": action}
+        sample_dict = {"action": torch.squeeze(action, dim=0)}
 
         if "logp" in self._info_to_gather_during_sampling:
-            sample_dict["logp"] = dist.log_prob(action)
+            sample_dict["logp"] = torch.squeeze(dist.log_prob(action), dim=0)
         if "vf" in self._info_to_gather_during_sampling:
-            sample_dict["vf"] = self.model.get_vf()
+            sample_dict["vf"] = torch.squeeze(self.model.get_vf(), dim=0)
 
         return sample_dict
 
