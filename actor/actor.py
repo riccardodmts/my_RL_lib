@@ -7,6 +7,7 @@ import gymnasium as gym
 from collections import OrderedDict
 import numpy as np
 import torch
+import copy
 
 
 class Actor:
@@ -45,20 +46,11 @@ class Actor:
         self.actions = None
         self.rewards = None
         self.dones = None
+        # initialized during first sampling
 
         # to store other info (base on the first return of the policy, the keys are added)
         # e.g. for PPO value_function, logp
         self.sampling_info = {}
-
-        # to keep track of the current step in the trajectory (l<=T)
-        self.l = 0
-
-
-
-
-
-
-
 
 
     def _init_env(self, env_info, env_config):
@@ -152,9 +144,10 @@ class Actor:
                 for key in other_info.keys():
                     self.sampling_info[key] = [other_info[key]]
 
-    def _add_sample_to_buffer(self, obs, action, reward, done, other_info=None):
+    def _add_sample_to_buffer(self, t, obs, action, reward, done, other_info=None):
         """
         Add the new sample to the buffer with all the samples collected up to now in one trajectory
+        :param t: time instant
         :param obs: new observation (o_{t+1})
         :param action: action a_t sampled given o_t
         :param reward: reward r_t obtained by applying a_t
@@ -168,12 +161,12 @@ class Actor:
         if self._is_obs_dict:
             for key in self.observations:
                 if self.T:
-                    self.observations[key][self.l+1] = obs[key]
+                    self.observations[key][t+1] = obs[key]
                 else:
                     self.observations[key].append(obs[key])
         else:
             if self.T:
-                self.observations[self.l+1] = obs
+                self.observations[t+1] = obs
             else:
                 self.observations.append(obs)
 
@@ -186,15 +179,15 @@ class Actor:
         else:
 
             if self.T:
-                self.rewards[self.l, 0] = reward
-                self.dones[self.l, 0] = done
-                self.actions[self.l] = action
+                self.rewards[t, 0] = reward
+                self.dones[t, 0] = 1 if done else 0
+                self.actions[t] = action
                 if other_info is not None:
                     for key in other_info.keys():
-                        self.sampling_info[key][self.l] = other_info[key]
+                        self.sampling_info[key][t] = other_info[key]
             else:
                 self.rewards.append(reward)
-                self.dones.append(done)
+                self.dones.append(1 if done else 0)
                 self.actions.append(action)
                 if other_info is not None:
                     for key in other_info.keys():
@@ -210,7 +203,7 @@ class Actor:
             done: boolean
             other_info: if no info are needed, None
         """
-        print(self.last_obs)
+
         current_obs = torch.tensor(self.last_obs)
         sample_dict = self.policy.sample(current_obs)
 
@@ -219,7 +212,6 @@ class Actor:
             action_to_env = action.item()
         else:
             action_to_env = action
-        print(type(action_to_env))
 
         if len(list(sample_dict.keys())) > 0:
             other_info = {key: sample_dict[key].numpy() for key in sample_dict.keys()}
@@ -231,6 +223,99 @@ class Actor:
         done = terminated or truncated
 
         return action, np.array(next_obs, dtype=np.float32), reward, done, other_info
+
+    def _manage_end_episode(self, t):
+        """
+        Handle end of an episode in both cases self.T is or not None
+        :param t: time instant in between a trajectory
+        :return:
+        """
+
+        # reset env and get new initial state
+        new_obs, _ = self.env.reset()
+        new_obs = np.array(new_obs, dtype=np.float32)
+        # save new state in buffer (the final state of the previous episode is not saved)
+        # if self.T None, the observation buffer will be initialized in any case
+        if self.T is not None:
+            if self._is_obs_dict:
+
+                for key in self.observations:
+                    self.observations[key][t+1] = new_obs[key]
+            else:
+
+                self.observations[t+1] = new_obs
+
+        self.last_obs = new_obs
+
+    def sample_trajectory(self):
+
+        t = 0
+        done = False
+        """
+        --- INIT SAMPLING --- (new trajectory)
+        """
+        if self.T is None:
+            # if complete episode, initialize the buffers. Otherwise, we just overwrite the old one.
+            # by setting self.actions to None, _add_sample_to_buffer will call _init_buffer_trajectory
+            self.actions = None
+            self._init_observations()
+
+        """
+        --- SAMPLING ---
+        """
+        while True:
+            # exit from loop if:
+            #   - if T not None and T samples have been collected
+            #   - if end episode (T is None)
+            if self.T:
+                if t == self.T:
+                    break
+            else:
+                if done:
+                    break
+
+            action, next_obs, reward, done, other_info = self.sample()
+            self._add_sample_to_buffer(t, next_obs, action, reward, done, other_info)
+
+            if not done:
+                self.last_obs = next_obs
+            else:
+                self._manage_end_episode(t)
+
+            t += 1
+
+        """
+        --- STACK IN A TENSOR ---
+        """
+        # create tensor (numpy array) of type [T x ...] for each quantity and create a dict with them
+        # if T is None, the length varies based on the number of action in the episode collected
+        # if T set, the tensor is ready, just the dict has to be created
+        if self.T is None:
+
+            actions_trajectory = np.stack(self.actions, axis=0)
+            rewards_trajectory = np.stack(self.rewards, axis=0)
+            dones_trajectory = np.stack(self.dones, axis=0)
+
+            other_info_trajectory = {}
+
+            if len(list(self.sampling_info.keys())) > 0:
+                for key in self.sampling_info:
+                    other_info_trajectory[key] = np.stack(self.sampling_info[key], axis=0)
+            else:
+                other_info_trajectory = None
+
+            obs_trajectory = {}
+            if self._is_obs_dict:
+                for key in self.observations:
+                    obs_trajectory[key] = np.stack(self.observations[key], axis=0)
+
+            return {"obs": obs_trajectory, "actions": actions_trajectory, "rewards": rewards_trajectory,
+                    "dones": dones_trajectory, "other_info": other_info_trajectory}
+
+        return {"obs": copy.deepcopy(self.observations), "actions": copy.deepcopy(self.actions),
+                "dones": copy.deepcopy(self.dones), "rewards": copy.deepcopy(self.rewards),
+                "other_info": copy.deepcopy(self.sampling_info)}
+
 
 
 

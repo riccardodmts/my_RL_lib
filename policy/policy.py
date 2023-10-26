@@ -10,7 +10,6 @@ from .torch_model import TorchModel
 from . import torch_dist
 
 
-
 class Policy:
 
     def __init__(self, model_info, model_config, policy_config, dist_info=None,  device="cpu"):
