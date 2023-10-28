@@ -30,7 +30,7 @@ class Actor:
         # initialize env
         self._init_env(env_info, env_config)
         self.last_obs, _ = self.env.reset()
-        self.last_obs = np.array(self.last_obs, dtype=np.float32)
+        self.last_obs = self._to_float32(self.last_obs)
 
         self.T = T
 
@@ -52,6 +52,39 @@ class Actor:
         # e.g. for PPO value_function, logp
         self.sampling_info = {}
 
+    def _to_float32(self, obs):
+        """
+        Convert numpy arrays to float32 arrays. If dict, each array is converted.
+        :param obs: observation to convert
+        :return: obs converted to np.array with dtype=np.float32
+        """
+
+        is_dict = isinstance(obs, dict)
+
+        if is_dict:
+            for key in obs:
+                obs[key] = np.array(obs[key], dtype=np.float32)
+        else:
+            obs = np.array(obs, dtype=np.float32)
+
+        return obs
+
+    def _to_tensor(self, obs):
+        """
+        Convert obs to torch tensor. If dict, each array is converted.
+        :param obs: observation to convert
+        :return: obs converted to tensor
+        """
+
+        is_dict = isinstance(obs, dict)
+
+        if is_dict:
+            for key in obs:
+                obs[key] = torch.tensor(obs[key])
+        else:
+            obs = torch.tensor(obs)
+
+        return obs
 
     def _init_env(self, env_info, env_config):
         """
@@ -80,7 +113,7 @@ class Actor:
         self._is_obs_dict = isinstance(self.env.observation_space, gym.spaces.Dict)
         self.observations = OrderedDict()
         if self._is_obs_dict:
-            for item in self.last_obs:
+            for item in self.last_obs.items():
 
                 if self.T:
                     # if we know in advance the length of the trajectory, create a tensor of zeros
@@ -204,7 +237,7 @@ class Actor:
             other_info: if no info are needed, None
         """
 
-        current_obs = torch.tensor(self.last_obs)
+        current_obs = self._to_tensor(self.last_obs)
         sample_dict = self.policy.sample(current_obs)
 
         action = sample_dict.pop("action").numpy()
@@ -222,7 +255,7 @@ class Actor:
 
         done = terminated or truncated
 
-        return action, np.array(next_obs, dtype=np.float32), reward, done, other_info
+        return action, self._to_float32(next_obs), reward, done, other_info
 
     def _manage_end_episode(self, t):
         """
@@ -233,7 +266,7 @@ class Actor:
 
         # reset env and get new initial state
         new_obs, _ = self.env.reset()
-        new_obs = np.array(new_obs, dtype=np.float32)
+        new_obs = self._to_float32(new_obs)
         # save new state in buffer (the final state of the previous episode is not saved)
         # if self.T None, the observation buffer will be initialized in any case
         if self.T is not None:

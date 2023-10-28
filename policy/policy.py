@@ -25,7 +25,6 @@ class Policy:
         # set requirements during sampling (e.g. for PPO: action, vf, logp(action))
         self._info_to_gather_during_sampling = ["action"]
         self._update_sampling_requirements()
-        
 
     def _set_model_and_dist(self, model_info, model_config, dist_info=None):
 
@@ -65,6 +64,23 @@ class Policy:
             for item in list_info_needed_during_sampling:
                 self._info_to_gather_during_sampling.append(item)
 
+    def _unsqueeze(self, obs):
+        """
+        Unsqueeze observation in order to have torch tensor (or tensors in case obs is a dict) of dim [B=1 x ...]
+        :param obs: observation
+        :return: observation unsqueezed
+        """
+
+        is_dict = isinstance(obs, dict)
+
+        if is_dict:
+            for key in obs:
+                obs[key] = torch.unsqueeze(obs[key], dim=0)
+        else:
+            obs = torch.unsqueeze(obs, dim=0)
+
+        return obs
+
     def sample(self, observation, state=None, hidden=None):
 
         """
@@ -79,7 +95,7 @@ class Policy:
 
         if hidden is None:
             with torch.no_grad():
-                observation = torch.unsqueeze(observation, dim=0)  # B=1 x ...
+                observation = self._unsqueeze(observation)  # B=1 x ...
                 output_model = self.model(observation, state)
                 dist = self.dist_cls(output_model)
 

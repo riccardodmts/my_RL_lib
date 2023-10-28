@@ -53,8 +53,8 @@ class TorchNormal:
 
     def __init__(self, mean, sigma=0.01):
 
-        dim = mean.shape[0]
-        covariance_matrix = sigma * torch.eye(dim)
+        B, dim = mean.shape[0], mean.shape[1]
+        covariance_matrix = torch.eye(dim).reshape((1, dim, dim)).repeat((B, 1, 1))
 
         self.inner_dist = MultivariateNormal(mean, covariance_matrix)
 
