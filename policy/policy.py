@@ -81,8 +81,7 @@ class Policy:
             with torch.no_grad():
                 observation = torch.unsqueeze(observation, dim=0)  # B=1 x ...
                 output_model = self.model(observation, state)
-                # TODO: implement dist wrapper for managing different scenarios
-                dist = self.dist_cls(logits=output_model)
+                dist = self.dist_cls(output_model)
 
                 action = dist.sample()
 
