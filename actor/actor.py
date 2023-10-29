@@ -146,6 +146,26 @@ class Actor:
 
         self.policy = policy_cls(model_info, model_config, policy_config, dist_info, self.device)
 
+    def _add_obs_to_buffer(self, obs, t):
+        """
+        Add observation to buffer
+        :param obs: observation to add
+        :param t: time instant in a trajectory
+        :return:
+        """
+
+        if self._is_obs_dict:
+            for key in self.observations:
+                if self.T:
+                    self.observations[key][t] = obs[key]
+                else:
+                    self.observations[key].append(obs[key])
+        else:
+            if self.T:
+                self.observations[t] = obs
+            else:
+                self.observations.append(obs)
+
     def _init_buffer_trajectory(self, action, reward, done, other_info=None):
         """
         Init buffer for actions, rewards, dones and other_info
@@ -190,18 +210,7 @@ class Actor:
         """
 
         # obs
-
-        if self._is_obs_dict:
-            for key in self.observations:
-                if self.T:
-                    self.observations[key][t+1] = obs[key]
-                else:
-                    self.observations[key].append(obs[key])
-        else:
-            if self.T:
-                self.observations[t+1] = obs
-            else:
-                self.observations.append(obs)
+        self._add_obs_to_buffer(obs, t+1)
 
         # action, reward, done and other info
 
@@ -292,6 +301,11 @@ class Actor:
             # by setting self.actions to None, _add_sample_to_buffer will call _init_buffer_trajectory
             self.actions = None
             self._init_observations()
+        else:
+            # TODO: refactor this (_init_observation)
+            # set last state as initial state (if this the n trajectory to collect, the last observation
+            # from trajectory n-1)
+            self._add_obs_to_buffer(self.last_obs, 0)
 
         """
         --- SAMPLING ---
@@ -318,7 +332,7 @@ class Actor:
             t += 1
 
         """
-        --- STACK IN A TENSOR ---
+        --- STACK IN ONE TENSOR ---
         """
         # create tensor (numpy array) of type [T x ...] for each quantity and create a dict with them
         # if T is None, the length varies based on the number of action in the episode collected
