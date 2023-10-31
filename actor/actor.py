@@ -182,12 +182,17 @@ class Actor:
             self.rewards[0, 0] = reward
             self.dones = np.zeros((self.T, 1), dtype=np.int8)
             self.dones[0, 0] = 1 if done else 0
-            self.actions = np.zeros((self.T,) + action.shape, dtype=action.dtype)
+            # if action space is a scalar, add extra dimension e.g tensor [T x 1] instead of [T,]
+            action_dim = (1, ) + action.shape if not len(action.shape) else action.shape
+
+            self.actions = np.zeros((self.T,) + action_dim, dtype=action.dtype)
             self.actions[0] = action
             if other_info is not None:
                 for key in other_info.keys():
                     item = other_info[key]
-                    self.sampling_info[key] = np.zeros((self.T,)+item.shape, dtype=item.dtype)
+                    # if the extra info is a scalar add extra dimension
+                    other_item_dim = (1, ) + item.shape if not len(item.shape) else item.shape
+                    self.sampling_info[key] = np.zeros((self.T,)+other_item_dim, dtype=item.dtype)
                     self.sampling_info[key][0] = item
         else:
             self.rewards = [reward]
@@ -362,22 +367,3 @@ class Actor:
         return {"obs": copy.deepcopy(self.observations), "actions": copy.deepcopy(self.actions),
                 "dones": copy.deepcopy(self.dones), "rewards": copy.deepcopy(self.rewards),
                 "other_info": copy.deepcopy(self.sampling_info)}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
