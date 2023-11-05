@@ -77,14 +77,18 @@ class Actor:
         """
 
         is_dict = isinstance(obs, dict)
+        if is_dict:
+            obs_new = {}
+        else:
+            obs_new = None
 
         if is_dict:
             for key in obs:
-                obs[key] = torch.tensor(obs[key])
+                obs_new[key] = torch.tensor(obs[key])
         else:
-            obs = torch.tensor(obs)
+            obs_new = torch.tensor(obs)
 
-        return obs
+        return obs_new
 
     def _init_env(self, env_info, env_config):
         """
@@ -192,7 +196,9 @@ class Actor:
                     item = other_info[key]
                     # if the extra info is a scalar add extra dimension
                     other_item_dim = (1, ) + item.shape if not len(item.shape) else item.shape
-                    self.sampling_info[key] = np.zeros((self.T,)+other_item_dim, dtype=item.dtype)
+                    # if vf, add 1 extra sample
+                    extra_sample = 1 if key == "vf" else 0
+                    self.sampling_info[key] = np.zeros((self.T+extra_sample,)+other_item_dim, dtype=item.dtype)
                     self.sampling_info[key][0] = item
         else:
             self.rewards = [reward]
@@ -321,6 +327,11 @@ class Actor:
             #   - if end episode (T is None)
             if self.T:
                 if t == self.T:
+                    current_obs = self._to_tensor(self.last_obs)
+                    sample_dict = self.policy.sample(current_obs)
+                    if "vf" in sample_dict:
+                        self.sampling_info["vf"][self.T] = sample_dict["vf"]
+
                     break
             else:
                 if done:

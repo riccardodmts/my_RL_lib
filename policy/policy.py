@@ -123,3 +123,20 @@ class Policy:
         :return:
         """
         pass
+
+    def get_weights(self):
+        """
+        :return: state dict of the model
+        """
+
+        return self.model.state_dict()
+
+    def set_weights(self, model_state_dict):
+        """
+        :param model_state_dict: weights to load
+        :return:
+        """
+
+        self.model.load_state_dict(model_state_dict)
+
+
