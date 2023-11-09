@@ -40,8 +40,11 @@ class PPODataset(Dataset):
         self.obs, self.obs_is_dict = self._retrieve_observations(batch)
 
         # compute advantage for each sample
-        self.advantages = self._compute_advantage(rewards, vf, dones)
-        self.value_target = self.advantages + vf[:, :-1, :]
+        self.advantages_un = self._compute_advantage(rewards, vf, dones)
+        self.value_target_un = self.advantages_un + vf[:, :-1, :]
+        # normalize advantage and vf target (over entire batch)
+        self.advantages = (self.advantages_un - torch.mean(self.advantages_un))/(torch.std(self.advantages_un))
+        self.value_target = (self.value_target_un - torch.mean(self.value_target_un))/(torch.std(self.value_target_un))
 
     def _compute_advantage(self, rewards, vf, dones):
         """
@@ -126,7 +129,7 @@ class PPODataset(Dataset):
         advantage = self.advantages[trajectory, time_instant]
         value_target = self.value_target[trajectory, time_instant]
 
-        return obs, action, logp, advantage, value_target
+        return {"obs": obs, "action": action, "logp": logp, "advantage": advantage, "value_target": value_target}
 
 
 if __name__ == "__main__":
@@ -154,9 +157,9 @@ if __name__ == "__main__":
     print(dataset[4])
 
     train_dataloader = DataLoader(dataset, batch_size=5, shuffle=True)
-    obs, action, logp, advantage, value_target = next(iter(train_dataloader))
-    print(obs)
-    print(advantage)
+    mini_batch = next(iter(train_dataloader))
+    print(mini_batch["obs"])
+    print(mini_batch["advantage"])
 
 
 
