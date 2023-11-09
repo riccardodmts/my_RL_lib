@@ -28,6 +28,10 @@ class Learner:
 
         self.policy = policy_cls(model_info, model_config, policy_config, dist_info, self.device)
 
+    def get_model_dict(self):
+
+        return self.policy.get_model_dict()
+
 
 class SynchLearner(Learner):
 
@@ -52,16 +56,50 @@ class SynchLearner(Learner):
         Prepare the learner for the training, namely set the optimizers
         :return:
         """
+        # set model to train mode
+        self.policy.model.train()
 
         if len(self.optimizers) == 0:
 
-            net_params = self.policy.get_weights()
+            net_params = self.policy.get_model_parameters()
             self.optimizers.append(optim.Adam(net_params, self.lr, self.adam_betas))
 
         self.set_to_train = True
 
     def _create_torch_dataset(self, batch):
 
+        pass
+
+    def _to_device(self, batch):
+        """
+        Move tensors to the device used for training
+        :param batch: batch of data to move to device
+        :return:
+        """
+        for key, item in batch.items():
+            if isinstance(item, dict):
+                for k, el in item.items():
+                    el.to(self.device)
+            else:
+                item.to(self.device)
+
+    def _compute_training_stats(self):
+        """
+        To be defined by subclass
+        :return:
+        """
+        pass
+
+    def _save_training_stats(self):
+        """
+        :return:
+        """
+        pass
+
+    def _get_recent_training_stats(self):
+        """
+        :return:
+        """
         pass
 
     def train(self, batch):
@@ -84,15 +122,32 @@ class SynchLearner(Learner):
         for epoch in range(self.epochs):
 
             for i, minibatch in enumerate(dataloader):
+                # move to device (either cuda or cpu)
+                self._to_device(minibatch)
                 # zero grad all optimizers
                 for opt in self.optimizers:
                     opt.zero_grad()
                 # compute loss and gradient
                 loss = self.loss(minibatch)
+                self._save_training_stats()
                 loss.backward()
 
                 # update weights
                 for opt in self.optimizers:
                     opt.step()
 
-        return self.policy.get_weights()
+            # compute average losses for this epoch
+            self._compute_training_stats()
+
+        # get average losses for the last epoch
+        training_metrics = self._get_recent_training_stats()
+        return self.policy.get_model_dict(), training_metrics
+
+    def _detach_obs_dict(self, obs_dict):
+        """
+        Detach each tensor in obs dict
+        :param obs_dict: observation dictionary
+        :return:
+        """
+        for key in obs_dict:
+            obs_dict[key] = obs_dict[key].detach()
