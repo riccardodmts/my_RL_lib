@@ -113,7 +113,7 @@ class Policy:
 
         return sample_dict
 
-    def training_forward(self,  observation, state=None, hidden=None):
+    def training_forward(self, observation, state=None, hidden=None):
 
         """
         To be defined by a subclass
@@ -124,19 +124,27 @@ class Policy:
         """
         pass
 
-    def get_weights(self):
+    def get_model_dict(self):
         """
         :return: state dict of the model
         """
 
         return self.model.state_dict()
 
-    def set_weights(self, model_state_dict):
+    def set_model_dict(self, model_state_dict):
         """
-        :param model_state_dict: weights to load
+        :param model_state_dict: model dict to load
         :return:
         """
 
         self.model.load_state_dict(model_state_dict)
+
+    def get_model_parameters(self):
+        """
+        Get the parameteres of the torch model (used for optimizing the net)
+        :return:
+        """
+
+        return self.model.parameters()
 
 
