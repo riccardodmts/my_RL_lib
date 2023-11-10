@@ -29,7 +29,7 @@ class Policy:
     def _set_model_and_dist(self, model_info, model_config, dist_info=None):
 
         """
-        This function initialize the model and save the dist class
+        This function initializes the model and save the dist class
         :param model_info: either a model class or the key to a model in the catalog
         :param model_config: model config dict
         :param dist_info: Optional. If None, the action space is used to retrieve the right class.
@@ -84,10 +84,10 @@ class Policy:
     def sample(self, observation, state=None, hidden=None):
 
         """
-        This function sample an action based on the observation/state provided
+        This function samples an action based on the observation/state provided
         :param observation:
-        :param state:
-        :param hidden:
+        :param state: not used
+        :param hidden: not used
         :return: dict with what is specified in self._info_to_gather_during_sampling
         e.g. for PPO: {"action" : ..., "vf" : ..., "logp" : ...}
         NOTE: each item in the dict has dim [B=1 x ....]
@@ -106,6 +106,7 @@ class Policy:
 
         sample_dict = {"action": torch.squeeze(action, dim=0)}
 
+        # add extra info if needed during training
         if "logp" in self._info_to_gather_during_sampling:
             sample_dict["logp"] = torch.squeeze(dist.log_prob(action), dim=0)
         if "vf" in self._info_to_gather_during_sampling:
@@ -141,7 +142,7 @@ class Policy:
 
     def get_model_parameters(self):
         """
-        Get the parameteres of the torch model (used for optimizing the net)
+        Get the parameters of the torch model (used for optimizing the net)
         :return:
         """
 

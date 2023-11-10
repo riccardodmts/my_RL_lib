@@ -60,11 +60,11 @@ class PPOLearner(SynchLearner):
                             entropy_coeff=None
                             ):
         """
-        Set PPO paramteres for training
+        Set PPO parameters for training
         :param lamb: lambda use for GAE
         :param clip_param: clipping param for clipped loss
         :param lr: learning rate
-        :param minibatch_size: size of mini-batches using during SGD-based training
+        :param minibatch_size: mini-batches size used during SGD-based training
         :param epochs: # SGD iterations
         :param vf_loss_coeff: coefficient for the state-value function loss
         :param entropy_coeff: coefficient for the entropy loss. if None or <= 0, not used
@@ -134,7 +134,6 @@ class PPOLearner(SynchLearner):
 
         # add entropy penalty term if needed
         if self.entropy_coeff > 0.0:
-            #print(entropy.shape)
             entropy_loss = torch.mean(entropy)
             loss += self.entropy_coeff * entropy_loss
             self.entropy = entropy_loss.item()
