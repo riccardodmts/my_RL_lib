@@ -1,4 +1,4 @@
-# Gymansium CartPole-v1 results with PPO
+# Gymansium CartPole-v1, results with PPO
 
 PPO params used:
 
@@ -18,5 +18,5 @@ PPO params used:
 - Actor net: FFNN with 2 hidden layers with 32 units.
 - Critic net: FFNN with one hidden layer with 32 units.
 
-Policy evaluated by running 10 episodes (done it during training, every 5 training steps):
+Policy evaluated by running 10 episodes (agent evaluated every 5 training steps):
 ![ppo_cart_pole_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/508c95e9-8595-469f-911f-791838fd8448)
