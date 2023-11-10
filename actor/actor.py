@@ -279,7 +279,7 @@ class Actor:
 
     def _manage_end_episode(self, t):
         """
-        Handle end of an episode in both cases self.T is or not None
+        Handle end of an episode in both cases: self.T is or not None
         :param t: time instant in between a trajectory
         :return:
         """
