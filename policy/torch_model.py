@@ -45,6 +45,7 @@ class LinearPPOModel(TorchModel):
 
         actor_config = model_config["actor"]
         critic_config = model_config["critic"]
+        self.num_actions = model_config["num_actions"]
 
         # we assume 2 hidden layers for the actor and discrete action space
         self.actor_hidden_1 = nn.Linear(model_config["input_dim"], actor_config["first_hidden"])
@@ -75,6 +76,50 @@ class LinearPPOModel(TorchModel):
 
         return actions_logits
 
+
+class LinearPPOModelContinuous(TorchModel):
+
+    def __init__(self, model_config):
+
+        super(LinearPPOModelContinuous, self).__init__(model_config)
+
+        actor_config = model_config["actor"]
+        critic_config = model_config["critic"]
+        self.num_actions = model_config["num_actions"]
+
+        # we assume 2 hidden layers for the actor and discrete action space
+        self.actor_hidden_1 = nn.Linear(model_config["input_dim"], actor_config["first_hidden"])
+        self.actor_hidden_2 = nn.Linear(actor_config["first_hidden"], actor_config["second_hidden"])
+        self.actor_output = nn.Linear(actor_config["second_hidden"], model_config["num_actions"])
+
+        self.actor_act_1 = nn.ReLU()
+        self.actor_act_2 = nn.ReLU()
+        self.actor_act_output = nn.Tanh()
+
+        # critic one hidden. no partial observability -> state and obs are the same
+        self.critic_hidden = nn.Linear(model_config["input_dim"], critic_config["first_hidden"])
+        self.critic_hidden2 = nn.Linear(critic_config["first_hidden"], critic_config["first_hidden"])
+        self.critic_output = nn.Linear(critic_config["first_hidden"], 1)
+
+        self.critic_act = nn.ReLU()
+
+    def forward(self, obs, state=None, hidden=None):
+
+        x = self.actor_hidden_1(obs)
+        x = self.actor_act_1(x)
+        x = self.actor_hidden_2(x)
+        x = self.actor_act_2(x)
+
+
+        mean = 2*self.actor_act_output(self.actor_output(x))
+
+        v = self.critic_hidden(obs)
+        v = self.critic_act(v)
+        v = self.critic_hidden2(v)
+        v = self.critic_act(v)
+        self._value = self.critic_output(v)
+
+        return mean
 
 if __name__ == "__main__":
 
