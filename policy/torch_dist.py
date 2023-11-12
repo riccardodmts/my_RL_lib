@@ -51,10 +51,10 @@ class TorchNormal:
     Torch distribution wrapper for multimodal gaussian with fixed diagonal covariance matrix
     """
 
-    def __init__(self, mean, sigma=0.01):
+    def __init__(self, mean, sigma=0.1):
 
         B, dim = mean.shape[0], mean.shape[1]
-        covariance_matrix = torch.eye(dim).reshape((1, dim, dim)).repeat((B, 1, 1))
+        covariance_matrix = sigma * torch.eye(dim).reshape((1, dim, dim)).repeat((B, 1, 1))
 
         self.inner_dist = MultivariateNormal(mean, covariance_matrix)
 
@@ -63,7 +63,8 @@ class TorchNormal:
         return self.inner_dist.sample()
 
     def log_prob(self, value):
-
+        if len(value.shape) == 1:
+            value = torch.unsqueeze(value, dim=1)
         return self.inner_dist.log_prob(value)
 
     def entropy(self):
