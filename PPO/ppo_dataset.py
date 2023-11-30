@@ -41,10 +41,9 @@ class PPODataset(Dataset):
 
         # compute advantage for each sample
         self.advantages_un = self._compute_advantage(rewards, vf, dones)
-        self.value_target_un = self.advantages_un + vf[:, :-1, :]
-        # normalize advantage and vf target (over entire batch)
-        self.advantages = (self.advantages_un - torch.mean(self.advantages_un))/(torch.std(self.advantages_un))
-        self.value_target = (self.value_target_un - torch.mean(self.value_target_un))/(torch.std(self.value_target_un))
+        self.value_target = self.advantages_un + vf[:, :-1, :]
+        # normalize advantage (over entire batch)
+        self.advantages = (self.advantages_un - torch.mean(self.advantages_un))/(torch.std(self.advantages_un)+1e-08)
 
     def _compute_advantage(self, rewards, vf, dones):
         """
@@ -68,9 +67,7 @@ class PPODataset(Dataset):
             advantages.append(delta_t + self.lamb * discount_t * advantages[-1])
 
         # advantages is a list with T+1 (first one "fake") tensors [B x 1] in a reverse order (t=T, t=T-1, ..., t=1)
-        advantages = torch.stack(advantages[1:])  # [T x B x 1] in reverse order
-        advantages = torch.flip(advantages, dims=[0])  # [T x B x 1] correct order
-        advantages = torch.transpose(advantages, 0, 1)  # [B x T x 1]
+        advantages = torch.stack(list(reversed(advantages[1:])), dim=1)
 
         return advantages
 

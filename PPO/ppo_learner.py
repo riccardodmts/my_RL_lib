@@ -57,7 +57,8 @@ class PPOLearner(SynchLearner):
                             minibatch_size=None,
                             epochs=None,
                             vf_loss_coeff=None,
-                            entropy_coeff=None
+                            entropy_coeff=None,
+                            max_grad_norm=None
                             ):
         """
         Set PPO parameters for training
@@ -68,8 +69,11 @@ class PPOLearner(SynchLearner):
         :param epochs: # SGD iterations
         :param vf_loss_coeff: coefficient for the state-value function loss
         :param entropy_coeff: coefficient for the entropy loss. if None or <= 0, not used
+        :param max_grad_norm: param used for clipping gradient (default: 0.5)
         :return:
         """
+
+        super().set_training_params(max_grad_norm=max_grad_norm)
 
         if lamb is not None:
             self.lamb = lamb
