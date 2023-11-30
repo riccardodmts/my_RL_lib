@@ -19,4 +19,6 @@ PPO params used:
 - Critic net: FFNN with 2 hidden layers with 64 units.
 - Clip gardient norm: 0.5
 
+MyAcroBot class is just a env wrapper for the Acrobot env: the last two observation features are normalized (min-max normalization).
+
 Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $-75.8125\pm4.3387$
