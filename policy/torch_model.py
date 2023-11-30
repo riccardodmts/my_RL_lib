@@ -57,6 +57,7 @@ class LinearPPOModel(TorchModel):
 
         # critic one hidden. no partial observability -> state and obs are the same
         self.critic_hidden = nn.Linear(model_config["input_dim"], critic_config["first_hidden"])
+        self.critic_hidden2 = nn.Linear(critic_config["first_hidden"], critic_config["first_hidden"])
         self.critic_output = nn.Linear(critic_config["first_hidden"], 1)
 
         self.critic_act = nn.ReLU()
@@ -72,6 +73,8 @@ class LinearPPOModel(TorchModel):
 
         v = self.critic_hidden(obs)
         v = self.critic_act(v)
+        v = self.critic_hidden2(v)
+        v = self.critic_act(v)
         self._value = self.critic_output(v)
 
         return actions_logits
@@ -86,6 +89,9 @@ class LinearPPOModelContinuous(TorchModel):
         actor_config = model_config["actor"]
         critic_config = model_config["critic"]
         self.num_actions = model_config["num_actions"]
+        self.output_mul = model_config.get("output_mul", None)
+        if self.output_mul is not None:
+            self.output_mul = torch.tensor(self.output_mul).float()
 
         # we assume 2 hidden layers for the actor and discrete action space
         self.actor_hidden_1 = nn.Linear(model_config["input_dim"], actor_config["first_hidden"])
@@ -110,8 +116,10 @@ class LinearPPOModelContinuous(TorchModel):
         x = self.actor_hidden_2(x)
         x = self.actor_act_2(x)
 
-
-        mean = 2*self.actor_act_output(self.actor_output(x))
+        y = self.actor_output(x)
+        mean = self.actor_act_output(y)
+        if self.output_mul is not None:
+            mean = self.output_mul * mean
 
         v = self.critic_hidden(obs)
         v = self.critic_act(v)
