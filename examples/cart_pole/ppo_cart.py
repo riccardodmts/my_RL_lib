@@ -14,29 +14,31 @@ def compute_score(data):
 
     dones = data["dones"]  # B x T x 1
     dones = np.squeeze(dones, axis=2)
-    first_done = np.argmax(dones == 1, axis=1) # B values
+    first_done = np.argmax(dones == 1, axis=1) + 1
     mean = np.mean(first_done)
     max_ = np.max(first_done)
     min_ = np.min(first_done)
+    std = np.std(first_done)
+    conf = 1.96 / np.sqrt(len(first_done))*std
 
-    return f"mean score: {mean}, max score: {max_}, min score: {min_}", (mean, max_, min_)
+    return f"mean score: {mean}, max score: {max_}, min score: {min_}, conf: {conf}", (mean, max_, min_, conf)
 
 def plot_eval_results(scores_list):
 
     means = []
-    maxs = []
-    mins = []
+    confs = []
 
     for item in scores_list:
         means.append(item[0])
-        maxs.append(item[1])
-        mins.append(item[2])
+        confs.append(item[3])
 
     fig, ax = plt.subplots()
     y = np.array(means)
     ax.plot(y)
-    ax.fill_between(range(len(y)), np.array(mins), np.array(maxs), alpha=.1)
-    plt.show()
+    ax.fill_between(range(len(y)), y-np.array(confs), y+np.array(confs), alpha=.1)
+    ax.set_xlabel("Training steps")
+    ax.set_ylabel("Score")
+    plt.savefig("ppo_cart_pole_eval.jpg")
 
 
 if __name__ == "__main__":
@@ -48,13 +50,13 @@ if __name__ == "__main__":
             "num_actions": 2,
 
             "actor": {
-                "first_hidden": 32,
-                "second_hidden": 32
+                "first_hidden": 64,
+                "second_hidden": 64
             },
 
             "critic": {
 
-                "first_hidden": 32
+                "first_hidden": 64
 
             }
         }
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     # create a learner with gamma and model info
     learner = PPOLearner(0.99, policy_d)
     # set params for training
-    learner.set_training_params(lamb=0.995, minibatch_size=500, lr=0.003, epochs=5)
+    learner.set_training_params(lamb=0.95, minibatch_size=256, lr=0.0003, epochs=5)
 
     # synch weights among all the sampling actors
     initial_weights = learner.get_model_dict()
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     best_mean = None
 
     # number of training steps
-    steps = 50
+    steps = 30
     for i in range(steps):
         # sample N trajectories
         batch, _ = sampler.sample_batch(stack_trajectories=True)
@@ -107,17 +109,16 @@ if __name__ == "__main__":
         sampler.synch_weights(weights)
 
         # every 10 training steps evaluate policy
-        if ((i+1) % 5 == 0) or i == 0:
-            batch = sampler.evaluate_policy(10, weights)
-            string_to_print, score = compute_score(batch)
-            print(string_to_print)
-            if best_mean is None:
-                best_mean = score[0]
-                best_weights = weights
-            elif score[0] > best_mean:
-                best_mean = score[0]
-                best_weights = weights
-            eval_scores.append(score)
+        batch = sampler.evaluate_policy(16, weights)
+        string_to_print, score = compute_score(batch)
+        print(f"Training step: {i}, "+string_to_print)
+        if best_mean is None:
+            best_mean = score[0]
+            best_weights = weights
+        elif score[0] > best_mean:
+            best_mean = score[0]
+            best_weights = weights
+        eval_scores.append(score)
 
     plot_eval_results(eval_scores)
 
