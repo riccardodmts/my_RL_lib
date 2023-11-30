@@ -19,4 +19,4 @@ PPO params used:
 - Critic net: FFNN with 2 hidden layers with 64 units.
 - Clip gardient norm: 0.5
 
-Policy evaluated by running 16 episodes (agent evaluated at each training steps)
+Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $500\pm0$
