@@ -22,3 +22,6 @@ PPO params used:
 MyAcroBot class is just a env wrapper for the Acrobot env: the last two observation features are normalized (min-max normalization).
 
 Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $-75.8125\pm4.3387$
+
+![ppo_acrobot_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/204aa163-63e6-41e4-b0a9-55a683f3d26d)
+
