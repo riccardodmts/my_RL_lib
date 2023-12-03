@@ -20,3 +20,7 @@ PPO params used:
 - Clip gardient norm: 0.5
 
 Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $500\pm0$
+![ppo_cart_pole_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/b15f44d8-8b71-4ebe-bc34-e9bc35b06408)
+
+
+
