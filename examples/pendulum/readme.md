@@ -21,3 +21,8 @@ PPO params used:
 - $\sigma^2$ for sampling action (gaussian variance): fixed, $0.05$.
 
 Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $-153.334\pm32.838$
+
+![ppo_pendulum_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/f6ac703f-e315-4ee9-b953-297e47699292)
+
+
+
