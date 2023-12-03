@@ -143,7 +143,7 @@ class SynchLearner(Learner):
                 loss = self.loss(minibatch)
                 self._save_training_stats()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.policy.get_model_parameters(), 0.5)
+                torch.nn.utils.clip_grad_norm_(self.policy.get_model_parameters(), self.max_grad_norm)
 
                 # update weights
                 for opt in self.optimizers:
