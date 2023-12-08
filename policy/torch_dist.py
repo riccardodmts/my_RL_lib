@@ -71,3 +71,38 @@ class TorchNormal:
 
         return self.inner_dist.entropy()
 
+
+class TorchNormalV2:
+
+    def __init__(self, model_output):
+
+        mean = model_output[0]
+        log_std = model_output[1]
+
+        B, dim = mean.shape[0], mean.shape[1]
+
+        if isinstance(log_std, torch.Tensor):
+            if not log_std.shape[0] == B:
+                # in case log_std has dim [1 x action space]
+                log_std = log_std.expand_as(mean)
+        else:
+            # in case std is a scalar
+            log_std = torch.ones((B, dim)).float() * log_std
+
+        std = torch.exp(log_std)  # [B x action space] std for actions
+        self.inner_dist = Normal(mean, std)
+
+    def sample(self):
+
+        return self.inner_dist.sample()
+
+    def log_prob(self, value):
+
+        if len(value.shape) == 1:
+            value = torch.unsqueeze(value, dim=1)
+
+        return self.inner_dist.log_prob(value).sum(1)
+
+    def entropy(self):
+
+        return self.inner_dist.entropy().sum(1)

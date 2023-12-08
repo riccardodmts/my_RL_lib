@@ -17,7 +17,7 @@ PPO params used:
 - No entropy penalty ($c_2=0$).
 - Actor net: FFNN with 2 hidden layers with 64 units.
 - Critic net: FFNN with 2 hidden layers with 64 units.
-- Clip gardient norm: 0.5
+- Clip gradient norm: 0.5
 
 MyAcroBot class is just a env wrapper for the Acrobot env: the last two observation features are normalized (min-max normalization).
 

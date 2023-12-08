@@ -8,7 +8,7 @@ import importlib.util
 from policy.torch_model import TorchModel
 
 # example
-from policy.torch_model import LinearPPOModel, LinearPPOModelContinuous
+from policy.torch_model import LinearPPOModel, LinearPPOModelContinuous, LinearPPOModelContinuousV2
 
 # dict for saving model classes
 model_catalog = {
@@ -49,3 +49,4 @@ def import_model(key, config):
 
 register_model(LinearPPOModel, "example")
 register_model(LinearPPOModelContinuous, "cont")
+register_model(LinearPPOModelContinuousV2, "mujoco_model")
