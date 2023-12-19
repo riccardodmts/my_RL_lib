@@ -29,6 +29,10 @@ class Actor:
         self.env = None
         # initialize env
         self._init_env(env_info, env_config)
+        # if continuous action space, store possible min/max values (used for clipping sampled actions)
+        self.bounds = None
+        self._check_bounds()
+
         self.last_obs, _ = self.env.reset()
         self.last_obs = self._to_float32(self.last_obs)
 
@@ -150,6 +154,23 @@ class Actor:
 
         self.policy = policy_cls(model_info, model_config, policy_config, dist_info, self.device)
 
+    def _check_bounds(self):
+        """
+        Check if in case of continuous action space, any bound is set. In that case update
+        self.bounds
+        :return: boolean (if any bound exists)
+        """
+
+        action_space = self.env.action_space
+        if isinstance(action_space, gym.spaces.Box):
+            self.bounds = []
+            bounds_above = action_space.high
+            bounds_below = action_space.low
+            has_any_bound = 2 - np.isinf(bounds_above) - np.isinf(bounds_below)
+            has_any_bound = has_any_bound > 0
+            for i in range(len(bounds_above)):
+                self.bounds.append((has_any_bound[i], bounds_below[i], bounds_above[i]))
+
     def _add_obs_to_buffer(self, obs, t):
         """
         Add observation to buffer
@@ -246,6 +267,22 @@ class Actor:
                     for key in other_info.keys():
                         self.sampling_info[key].append(other_info[key])
 
+    def _clip_action(self, action):
+        """
+        Given a sampled action, clip it based on self.bounds
+        :param action: action sampled
+        :return: action clipped
+        """
+        # clip each single component (if necessary)
+        action_clipped = copy.deepcopy(action)
+        for i in range(len(action)):
+            if self.bounds[i][0]:
+                min_ = None if np.isinf(self.bounds[i][1]) else self.bounds[i][1]
+                max_ = None if np.isinf(self.bounds[i][2]) else self.bounds[i][2]
+                action_clipped[i] = np.clip(action[i], a_min=min_, a_max=max_)
+
+        return action_clipped
+
     def sample(self):
         """
         Sample from the environment a tuple of kind (a_t, o_{t+1}, r_t, done, ...)
@@ -261,10 +298,12 @@ class Actor:
         sample_dict = self.policy.sample(current_obs)
 
         action = sample_dict.pop("action").numpy()
-        if len(action.shape) == 0:
-            action_to_env = action.item()
+        action_clipped = self._clip_action(action) if self.bounds is not None else action
+
+        if len(action_clipped.shape) == 0:
+            action_to_env = action_clipped.item()
         else:
-            action_to_env = action
+            action_to_env = action_clipped
 
         if len(list(sample_dict.keys())) > 0:
             other_info = {key: sample_dict[key].numpy() for key in sample_dict.keys()}

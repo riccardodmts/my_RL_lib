@@ -59,7 +59,7 @@ class Sampler:
             if actor_id not in self.actors_set.keys():
                 raise Exception("Actor IDs not valid!")
 
-        return {actor_id: self.actors_set[actor_id].policy.get_weights() for actor_id in actor_ids}
+        return {actor_id: self.actors_set[actor_id].policy.get_model_dict() for actor_id in actor_ids}
 
     def sample_batch(self):
         """

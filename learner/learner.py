@@ -3,6 +3,7 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 import torch
 
+
 class Learner:
 
     def __init__(self, gamma, policy_cls, policy_dict, device="cpu"):
@@ -32,6 +33,10 @@ class Learner:
 
         return self.policy.get_model_dict()
 
+    def set_model_dict(self, model_dict):
+
+        self.policy.set_model_dict(model_dict)
+
 
 class SynchLearner(Learner):
 
@@ -46,6 +51,7 @@ class SynchLearner(Learner):
         self.minibatch_size = -1  # -1 = do not split batch in mini-batches
         self.optimizers = []
         self.set_to_train = False
+        self.max_grad_norm = 0.5
 
     def loss(self, batch):
 
@@ -62,9 +68,15 @@ class SynchLearner(Learner):
         if len(self.optimizers) == 0:
 
             net_params = self.policy.get_model_parameters()
-            self.optimizers.append(optim.Adam(net_params, self.lr, self.adam_betas))
+            self.optimizers.append(optim.Adam(net_params, self.lr, self.adam_betas, eps=1e-7))
 
         self.set_to_train = True
+
+    def set_training_params(self,
+                            max_grad_norm = None
+                            ):
+        if max_grad_norm is not None:
+            self.max_grad_norm = max_grad_norm
 
     def _create_torch_dataset(self, batch):
 
@@ -117,7 +129,7 @@ class SynchLearner(Learner):
         dataset = self._create_torch_dataset(batch)
         batch_size = len(dataset)
         minibatch_size = batch_size if self.minibatch_size == -1 else self.minibatch_size
-        dataloader = DataLoader(dataset, minibatch_size, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=minibatch_size, shuffle=True)
 
         for epoch in range(self.epochs):
 
@@ -131,6 +143,7 @@ class SynchLearner(Learner):
                 loss = self.loss(minibatch)
                 self._save_training_stats()
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.policy.get_model_parameters(), self.max_grad_norm)
 
                 # update weights
                 for opt in self.optimizers:

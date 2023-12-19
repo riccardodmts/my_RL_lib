@@ -4,19 +4,23 @@ PPO params used:
 
 - $\gamma=0.99$.
 - Number of actors: 10.
-- Training steps: 50.
+- Training steps: 30.
 - Trajectory length: $T=500$.
-- $\lambda=0.995$.
+- $\lambda=0.95$.
 - PPO clipping param: $\epsilon=0.2$.
 - Optimization:
   1. Number of epochs: 5.
-  2. Mini-batch size: 500 (batch size = 5000).
+  2. Mini-batch size: 256 (batch size = 5000).
   3. Optimizer: Adam with $\beta_1=0.9, \beta_2=0.99$.
-  4. Learning rate: 0.003.
+  4. Learning rate: 0.0003.
 - $c1$ (coefficient for state-value function loss): 1.0.
 - No entropy penalty ($c_2=0$).
-- Actor net: FFNN with 2 hidden layers with 32 units.
-- Critic net: FFNN with one hidden layer with 32 units.
+- Actor net: FFNN with 2 hidden layers with 64 units.
+- Critic net: FFNN with 2 hidden layers with 64 units.
+- Clip gradient norm: 0.5
 
-Policy evaluated by running 10 episodes (agent evaluated every 5 training steps):
-![ppo_cart_pole_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/508c95e9-8595-469f-911f-791838fd8448)
+Policy evaluated by running 16 episodes (agent evaluated at each training steps). Best result, mean_cumulative_reward (episodic): $500\pm0$
+![ppo_cart_pole_eval](https://github.com/riccardodmts/my_RL_lib/assets/83876494/b15f44d8-8b71-4ebe-bc34-e9bc35b06408)
+
+
+
