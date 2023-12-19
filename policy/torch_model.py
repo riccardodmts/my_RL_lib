@@ -37,11 +37,11 @@ class TorchModel(nn.Module):
 """ Example model for PPO: actor + critic nets """
 
 
-class LinearPPOModel(TorchModel):
+class MLPModel(TorchModel):
 
     def __init__(self, model_config):
 
-        super(LinearPPOModel, self).__init__(model_config)
+        super(MLPModel, self).__init__(model_config)
 
         actor_config = model_config["actor"]
         critic_config = model_config["critic"]
@@ -80,11 +80,11 @@ class LinearPPOModel(TorchModel):
         return actions_logits
 
 
-class LinearPPOModelContinuous(TorchModel):
+class MLPModelContinuous(TorchModel):
 
     def __init__(self, model_config):
 
-        super(LinearPPOModelContinuous, self).__init__(model_config)
+        super(MLPModelContinuous, self).__init__(model_config)
 
         actor_config = model_config["actor"]
         critic_config = model_config["critic"]
@@ -130,15 +130,19 @@ class LinearPPOModelContinuous(TorchModel):
         return mean
 
 
-class LinearPPOModelContinuousV2(TorchModel):
+class MLPModelContinuousV2(TorchModel):
 
     def __init__(self, model_config):
 
-        super(LinearPPOModelContinuousV2, self).__init__(model_config)
+        super(MLPModelContinuousV2, self).__init__(model_config)
 
         actor_config = model_config["actor"]
         critic_config = model_config["critic"]
         self.num_actions = model_config["num_actions"]
+        self.output_mul = model_config.get("output_mul", None)
+        if self.output_mul is not None:
+            self.output_mul = torch.tensor(self.output_mul).float()
+        self.initial_std_const = model_config.get("initial_std_const", 0.0)
 
         # we assume 2 hidden layers for the actor and discrete action space
         self.actor_hidden_1 = nn.Linear(model_config["input_dim"], actor_config["first_hidden"])
@@ -155,7 +159,7 @@ class LinearPPOModelContinuousV2(TorchModel):
         self.critic_output = nn.Linear(critic_config["first_hidden"], 1)
 
         self.critic_act = nn.ReLU()
-        self.log_std = nn.Parameter(torch.zeros((1, self.num_actions)).float())
+        self.log_std = nn.Parameter(self.initial_std_const*torch.ones((1, self.num_actions)).float())
 
     def forward(self, obs, state=None, hidden=None):
 
@@ -166,6 +170,8 @@ class LinearPPOModelContinuousV2(TorchModel):
 
         y = self.actor_output(x)
         mean = self.actor_act_output(y)
+        if self.output_mul is not None:
+            mean = self.output_mul * mean
 
         v = self.critic_hidden(obs)
         v = self.critic_act(v)
@@ -196,7 +202,7 @@ if __name__ == "__main__":
         }
     }
 
-    model = LinearPPOModel(model_dict)
+    model = MLPModel(model_dict)
 
     input = torch.ones((5, 10))  # batch size B = 5
     logits = model(input)

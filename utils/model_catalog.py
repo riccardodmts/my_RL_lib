@@ -8,12 +8,13 @@ import importlib.util
 from policy.torch_model import TorchModel
 
 # example
-from policy.torch_model import LinearPPOModel, LinearPPOModelContinuous, LinearPPOModelContinuousV2
+from policy.torch_model import MLPModel, MLPModelContinuous, MLPModelContinuousV2
 
 # dict for saving model classes
 model_catalog = {
 
 }
+
 
 def register_model(model_cls_name, key):
     """
@@ -47,6 +48,6 @@ def import_model(key, config):
 
 """Call register_model to register any torch model class you need"""
 
-register_model(LinearPPOModel, "example")
-register_model(LinearPPOModelContinuous, "cont")
-register_model(LinearPPOModelContinuousV2, "mujoco_model")
+register_model(MLPModel, "example")
+register_model(MLPModelContinuous, "cont")
+register_model(MLPModelContinuousV2, "mujoco_model")

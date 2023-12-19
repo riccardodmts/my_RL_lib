@@ -274,13 +274,14 @@ class Actor:
         :return: action clipped
         """
         # clip each single component (if necessary)
+        action_clipped = copy.deepcopy(action)
         for i in range(len(action)):
             if self.bounds[i][0]:
                 min_ = None if np.isinf(self.bounds[i][1]) else self.bounds[i][1]
                 max_ = None if np.isinf(self.bounds[i][2]) else self.bounds[i][2]
-                action[i] = np.clip(action[i], a_min=min_, a_max=max_)
+                action_clipped[i] = np.clip(action[i], a_min=min_, a_max=max_)
 
-        return action
+        return action_clipped
 
     def sample(self):
         """
@@ -297,12 +298,12 @@ class Actor:
         sample_dict = self.policy.sample(current_obs)
 
         action = sample_dict.pop("action").numpy()
-        action = self._clip_action(action) if self.bounds is not None else action
+        action_clipped = self._clip_action(action) if self.bounds is not None else action
 
-        if len(action.shape) == 0:
-            action_to_env = action.item()
+        if len(action_clipped.shape) == 0:
+            action_to_env = action_clipped.item()
         else:
-            action_to_env = action
+            action_to_env = action_clipped
 
         if len(list(sample_dict.keys())) > 0:
             other_info = {key: sample_dict[key].numpy() for key in sample_dict.keys()}
