@@ -91,9 +91,9 @@ class SynchLearner(Learner):
         for key, item in batch.items():
             if isinstance(item, dict):
                 for k, el in item.items():
-                    el.to(self.device)
+                    batch[key][k] = el.to(self.device)
             else:
-                item.to(self.device)
+                batch[key] = item.to(self.device)
 
     def _compute_training_stats(self):
         """
